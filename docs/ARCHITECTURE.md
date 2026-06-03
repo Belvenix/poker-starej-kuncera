@@ -11,11 +11,12 @@
 
 ### Phase 2: QoL & Hardening
 - English translation toggle
-- Card animations, sounds, haptic feedback
+- ~~Card animations, sounds, haptic feedback~~ (done in POC)
 - Incognito mode (screen privacy for peeking protection)
 - Game configuration UI (elimination limit, deck range, player count)
-- Reconnection handling
+- Reconnection handling (basic auto-reconnect done in POC)
 - Disable impossible figures (e.g., 4 aces with only 3 cards in play)
+- Session persistence via localStorage (survive page refresh)
 
 ### Phase 3: Distribution
 - Offline play (service worker / PWA)
@@ -84,12 +85,19 @@ Browser (Phone)          Server (Python)
 - Confirmation dialogs for check/mate
 - Toggle history panel
 - Lobby: room code list polling (debug), room creation via API
+- Sound effects via Web Audio API (no external files):
+  - Your turn chime, raise click, check/mate tones, win fanfare, lose tone
+  - Masquerade: explosion (noise burst + bass boom + rising whistle + sparkles)
+  - Player joined ping, card deal tick
+- Haptic feedback (vibration) on key actions
 
 #### `static/style.css` - Styling
 - Mobile-first responsive design (scales to laptop)
 - Card visuals with suit symbols (CSS-only)
 - Casino-green theme, gold accents
 - Action buttons: raise (blue), check (orange), mate (red), masquerade (purple)
+- Animations: card deal stagger, declaration pop, current player glow pulse, card flip reveal, win bounce, title fade-in
+- Room code displayed in game screen top bar
 
 ### WebSocket Protocol
 
@@ -144,7 +152,7 @@ Browser (Phone)          Server (Python)
 - **WebRTC complexity**: P2P removes server cost but adds NAT traversal issues, especially on mobile networks
 - **Card asset size**: Custom themes increase app size; lazy loading needed
 - **Cheating**: In P2P mode, a modified client could peek at state; server-authoritative mode is more secure
-- **Physical cards feel**: Tangible cards are satisfying; compensate with good animations, card flip sounds, vibration on deal/check/mate
+- **Physical cards feel**: Tangible cards are satisfying; compensated with animations (deal, flip, pop, glow), sound effects (Web Audio API), and haptic vibration on key actions
 
 ## Dependencies
 
