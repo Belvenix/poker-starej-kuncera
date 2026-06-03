@@ -43,8 +43,11 @@ Browser (Phone)          Server (Python)
 
 #### `server/server.py` - Server
 - websockets library serves both HTTP and WebSocket on a single port
-- HTTP: static files + REST API (create/get rooms)
-- WebSocket: game actions (raise/check/mate/start)
+- HTTP: static files + REST API (GET only, websockets limitation)
+  - `GET /api/rooms` - list active room codes (debug)
+  - `GET /api/rooms/new` - create a new room
+  - `GET /api/rooms/{code}` - room info
+- WebSocket: `/ws/{room_code}/{player_name}` for game actions
 
 #### `server/game/engine.py` - Core game logic
 - Deck management (shuffle, deal, return cards)
@@ -74,12 +77,13 @@ Browser (Phone)          Server (Python)
 - Game screen (hand, actions, history)
 
 #### `static/game.js` - Game client
-- WebSocket connection with auto-reconnect
+- WebSocket connection with auto-reconnect (visibility change handler for phone sleep)
 - Render game state
-- Figure picker (type -> rank/suit selectors)
-- Masquerade button for full house swap
+- Figure picker (type -> rank/suit selectors, only valid raises shown)
+- Masquerade button for full house swap (single-click, auto-computed)
 - Confirmation dialogs for check/mate
 - Toggle history panel
+- Lobby: room code list polling (debug), room creation via API
 
 #### `static/style.css` - Styling
 - Mobile-first responsive design (scales to laptop)
@@ -118,7 +122,8 @@ Browser (Phone)          Server (Python)
 ## Security Considerations (Release)
 
 - Rate limiting per IP and per room
-- Max rooms per server with auto-cleanup of idle rooms (30 min timeout)
+- Max rooms per server (100) with auto-cleanup every 30s
+- Empty rooms (no connected players) expire after 2 minutes
 - Max message size on WebSocket (4KB)
 - Server crash > unexpected bill (fail-closed)
 - No persistent storage of game data (in-memory only)

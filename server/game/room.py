@@ -14,7 +14,7 @@ from typing import Any, Optional
 
 from .models import GameConfig, generate_room_code
 
-IDLE_TIMEOUT_SECONDS = 60 * 30  # 30 minutes
+IDLE_TIMEOUT_SECONDS = 120  # 2 minutes with no connected players
 
 
 class RoomStatus(str, Enum):
@@ -123,7 +123,12 @@ class Room:
     def _touch(self) -> None:
         self.last_activity = time.monotonic()
 
+    def has_connected_players(self) -> bool:
+        return any(cp.connected for cp in self.players.values())
+
     def is_idle(self, timeout: float = IDLE_TIMEOUT_SECONDS) -> bool:
+        if self.has_connected_players():
+            return False
         return (time.monotonic() - self.last_activity) > timeout
 
     @property

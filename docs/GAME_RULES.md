@@ -61,11 +61,18 @@ Gracz moze wykonac jedna z trzech akcji:
 - Osoba ktora spowodowala eliminacje zaczyna nastepna runde
 - Gra konczy sie gdy zostanie jeden gracz - zwyciezca
 
+### Maszkarada
+- Specjalna akcja dostepna TYLKO gdy na stole lezy full z trojka nizszej rangi niz para
+- Np. Full 9 po As (trojka 9, para Asow) -> maszkarada -> Full As po 9 (deklaracja: trojka Asow, para 9)
+- Sprawdzenie maszkarady: szukamy 2 kart deklarowanej trojki i 3 kart deklarowanej pary (odwrotnosc)
+- Nie mozna wywolac maszkarady na fullu gdzie trojka jest juz wyzsza niz para
+
 ### Wazne zasady
 - Figury sprawdzane sa wsrod WSZYSTKICH kart w grze (rece wszystkich graczy)
 - "Co najmniej" - jesli ktos deklaruje "para krolow" a sa 3 krolowie, para jest uznana
 - Kolory (pik, kier, karo, trefl) maja znaczenie TYLKO przy kolorze i pokerze
 - Przy sprawdzeniu: minimum 2 karty sa zawsze nierozdane, wiec pelna pewnosc jest niemozliwa
+- Mat: deklarowana figura musi istniec I nie moze istniec zadna wyzsza
 
 
 ## EN - Rules
@@ -128,8 +135,15 @@ Poker Starej Kuncery is a bluffing card game. Players declare figures (hands) th
 - The player who caused the elimination starts the next round
 - Game ends when one player remains - the winner
 
+### Masquerade (Maszkarada)
+- Special action available ONLY when the current declaration is a full house with trio rank lower than pair rank
+- E.g., Full house 9s over Aces (three 9s, pair of Aces) -> masquerade -> Full house Aces over 9s
+- Check verification is swapped: looks for 2 of the declared trio rank and 3 of the declared pair rank
+- Cannot call masquerade on a full house where the trio is already higher than the pair
+
 ### Important Rules
 - Figures are checked across ALL cards in play (all players' hands combined)
 - "At least" - declaring "pair of kings" is valid even if three kings exist
 - Suits (spades, hearts, diamonds, clubs) only matter for flush and straight flush
 - On check: at least 2 cards are always undealt, so full certainty is impossible
+- Mate: the declared figure must exist AND no higher figure can exist

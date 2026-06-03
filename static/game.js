@@ -286,6 +286,7 @@
         hide(lobbyForms);
         show(lobbyRoom);
         hide(lobbyError);
+        stopRoomsPoll();
 
         connectWS();
     }
@@ -295,6 +296,7 @@
     function switchToGame() {
         lobbyScreen.classList.remove('active');
         gameScreen.classList.add('active');
+        $('#game-room-code').textContent = roomCode || '';
     }
 
     function renderGame(state) {
@@ -911,6 +913,7 @@
         roomCode = null;
         playerName = null;
         gameState = null;
+        startRoomsPoll();
     });
 
     // ---------- UTILITY ----------
@@ -923,6 +926,30 @@
         }
         return code;
     }
+
+    // Poll active rooms in lobby
+    var roomsPollTimer = null;
+    function pollRooms() {
+        fetch('/api/rooms')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var el = $('#rooms-debug-list');
+                if (data.rooms && data.rooms.length > 0) {
+                    el.textContent = data.rooms.join(', ');
+                } else {
+                    el.textContent = 'brak';
+                }
+            })
+            .catch(function () {});
+    }
+    function startRoomsPoll() {
+        pollRooms();
+        roomsPollTimer = setInterval(pollRooms, 5000);
+    }
+    function stopRoomsPoll() {
+        if (roomsPollTimer) { clearInterval(roomsPollTimer); roomsPollTimer = null; }
+    }
+    startRoomsPoll();
 
     // Handle visibility change for reconnect on phone wake
     document.addEventListener('visibilitychange', function () {

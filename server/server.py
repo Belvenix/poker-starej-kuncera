@@ -28,7 +28,7 @@ logger = logging.getLogger("poker")
 MAX_MESSAGE_SIZE = 4096
 PLAYER_NAME_PATTERN = re.compile(r"^[A-Za-z0-9_\-\s]{1,20}$")
 ROOM_CODE_PATTERN = re.compile(r"^[A-Z0-9]{6}$")
-IDLE_CLEANUP_INTERVAL = 300
+IDLE_CLEANUP_INTERVAL = 30  # check every 30s, rooms expire after 2min with no players
 
 _FIGURE_TYPE_MAP: dict[str, FigureType] = {
     "high_card": FigureType.HIGH_CARD,
@@ -131,6 +131,12 @@ async def handle_http(connection, request):
         return None
 
     path = request.path
+
+    # REST API: GET /api/rooms - list room codes (debug)
+    if path == "/api/rooms":
+        codes = [room.code for room in room_manager.rooms.values()]
+        body = json.dumps({"rooms": codes}).encode()
+        return Response(200, "OK", websockets.Headers({"Content-Type": "application/json"}), body)
 
     # REST API: GET /api/rooms/new - create a room
     if path == "/api/rooms/new":
