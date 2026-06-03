@@ -4,6 +4,73 @@
 (function () {
     'use strict';
 
+    // ---------- AUDIO ----------
+
+    var audioCtx = null;
+    function getAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        return audioCtx;
+    }
+
+    function playTone(freq, duration, type, vol) {
+        try {
+            var ctx = getAudio();
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.type = type || 'sine';
+            osc.frequency.value = freq;
+            gain.gain.value = vol || 0.15;
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + duration);
+        } catch (e) {}
+    }
+
+    function sfxYourTurn() {
+        playTone(660, 0.1, 'sine', 0.2);
+        setTimeout(function () { playTone(880, 0.15, 'sine', 0.2); }, 100);
+    }
+
+    function sfxRaise() {
+        playTone(440, 0.08, 'triangle', 0.12);
+    }
+
+    function sfxCheck() {
+        playTone(330, 0.12, 'square', 0.1);
+        setTimeout(function () { playTone(220, 0.2, 'square', 0.1); }, 120);
+    }
+
+    function sfxMate() {
+        playTone(520, 0.1, 'sawtooth', 0.1);
+        setTimeout(function () { playTone(660, 0.1, 'sawtooth', 0.1); }, 100);
+        setTimeout(function () { playTone(880, 0.2, 'sawtooth', 0.12); }, 200);
+    }
+
+    function sfxWin() {
+        [523, 659, 784, 1047].forEach(function (f, i) {
+            setTimeout(function () { playTone(f, 0.25, 'sine', 0.18); }, i * 150);
+        });
+    }
+
+    function sfxLose() {
+        playTone(300, 0.3, 'sawtooth', 0.1);
+        setTimeout(function () { playTone(200, 0.4, 'sawtooth', 0.1); }, 300);
+    }
+
+    function sfxJoin() {
+        playTone(600, 0.08, 'sine', 0.1);
+    }
+
+    function sfxDeal() {
+        playTone(1200, 0.04, 'triangle', 0.08);
+    }
+
+    function vibrate(ms) {
+        if (navigator.vibrate) navigator.vibrate(ms);
+    }
+
     // ---------- CONSTANTS ----------
 
     const RANK_LABELS = {
@@ -209,18 +276,37 @@
     function handleMessage(msg) {
         switch (msg.type) {
             case 'state':
+                var wasMyTurn = gameState && gameState.round && gameState.round.is_your_turn;
                 gameState = msg;
                 if (msg.phase === 'lobby') {
                     renderLobbyPlayers(msg);
                 } else {
                     switchToGame();
                     renderGame(msg);
+                    // Sound on turn change to you
+                    var isNowMyTurn = msg.round && msg.round.is_your_turn;
+                    if (isNowMyTurn && !wasMyTurn) {
+                        sfxYourTurn();
+                        vibrate(100);
+                    }
+                    // Deal sound when new cards appear
+                    if (msg.round && !msg.round.last_figure) {
+                        sfxDeal();
+                    }
                 }
                 break;
 
             case 'round_result':
-                if (msg.event === 'check' || msg.event === 'mate') {
+                if (msg.event === 'check') {
+                    sfxCheck();
+                    vibrate(200);
                     showRoundResult(msg);
+                } else if (msg.event === 'mate') {
+                    sfxMate();
+                    vibrate([100, 50, 100]);
+                    showRoundResult(msg);
+                } else if (msg.event === 'raise') {
+                    sfxRaise();
                 }
                 break;
 
@@ -229,10 +315,18 @@
                 break;
 
             case 'game_over':
+                if (gameState && msg.winner === gameState.your_id) {
+                    sfxWin();
+                    vibrate([100, 50, 100, 50, 200]);
+                } else {
+                    sfxLose();
+                    vibrate(300);
+                }
                 showGameOver(msg);
                 break;
 
             case 'player_joined':
+                sfxJoin();
                 showToast(msg.name + ' dolaczyl/a!', 2000);
                 if (msg.players) renderLobbyPlayerList(msg.players);
                 break;
@@ -310,8 +404,14 @@
 
         // Declaration (last_figure is a string description from the engine)
         if (round.last_figure) {
+            var changed = declarationText.textContent !== round.last_figure;
             declarationText.textContent = round.last_figure;
             declarationBy.textContent = round.last_declarer ? ('- ' + round.last_declarer) : '';
+            if (changed) {
+                declarationText.classList.remove('declaration-pop');
+                void declarationText.offsetWidth; // reflow to restart animation
+                declarationText.classList.add('declaration-pop');
+            }
         } else {
             declarationText.textContent = 'Brak (pierwsza deklaracja)';
             declarationBy.textContent = '';
@@ -381,8 +481,11 @@
 
     function renderHand(cards) {
         playerHand.innerHTML = '';
-        cards.forEach(function (c) {
-            playerHand.appendChild(createCardEl(c, false));
+        cards.forEach(function (c, i) {
+            var el = createCardEl(c, false);
+            el.classList.add('card-deal');
+            el.style.animationDelay = (i * 0.08) + 's';
+            playerHand.appendChild(el);
         });
         if (cards.length === 0) {
             var empty = document.createElement('span');
