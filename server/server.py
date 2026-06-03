@@ -8,9 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import mimetypes
 import re
-from http import HTTPStatus
 from pathlib import Path
 from typing import Any
 
@@ -121,34 +119,28 @@ CONTENT_TYPES = {
 }
 
 
-async def handle_http(path: str, request_headers) -> tuple[HTTPStatus, list[tuple[str, str]], bytes] | None:
+async def handle_http(connection, request):
     """Handle HTTP requests (static files + REST API).
 
-    Returns (status, headers, body) for HTTP responses,
-    or None to proceed with WebSocket handshake.
+    For websockets 13+: receives (connection, request), returns Response or None.
     """
-    # Parse method from request headers
-    # websockets passes the request path and headers before upgrade
-    # We check if it's a regular HTTP request vs WebSocket upgrade
-    upgrade = None
-    method = "GET"
-    for key, val in request_headers.raw_items():
-        if key.lower() == "upgrade":
-            upgrade = val.lower()
+    from websockets.http11 import Response
 
-    # If this is a WebSocket upgrade request, let it through
-    if upgrade == "websocket":
+    # If this is a WebSocket upgrade, let it through
+    if request.headers.get("Upgrade", "").lower() == "websocket":
         return None
 
-    # REST API: POST /api/rooms
-    if path == "/api/rooms":
+    path = request.path
+
+    # REST API: GET /api/rooms/new - create a room
+    if path == "/api/rooms/new":
         try:
             room = await room_manager.create_room()
         except RuntimeError as exc:
             body = json.dumps({"error": str(exc)}).encode()
-            return HTTPStatus.SERVICE_UNAVAILABLE, [("Content-Type", "application/json")], body
+            return Response(503, "Service Unavailable", websockets.Headers({"Content-Type": "application/json"}), body)
         body = json.dumps({"code": room.code}).encode()
-        return HTTPStatus.CREATED, [("Content-Type", "application/json")], body
+        return Response(200, "OK", websockets.Headers({"Content-Type": "application/json"}), body)
 
     # REST API: GET /api/rooms/{code}
     if path.startswith("/api/rooms/") and len(path) > len("/api/rooms/"):
@@ -156,32 +148,31 @@ async def handle_http(path: str, request_headers) -> tuple[HTTPStatus, list[tupl
         clean = _validate_room_code(code)
         if clean is None:
             body = json.dumps({"error": "Invalid room code format"}).encode()
-            return HTTPStatus.BAD_REQUEST, [("Content-Type", "application/json")], body
+            return Response(400, "Bad Request", websockets.Headers({"Content-Type": "application/json"}), body)
         room = room_manager.get_room(clean)
         if room is None:
             body = json.dumps({"error": "Room not found"}).encode()
-            return HTTPStatus.NOT_FOUND, [("Content-Type", "application/json")], body
+            return Response(404, "Not Found", websockets.Headers({"Content-Type": "application/json"}), body)
         body = json.dumps(room.to_info_dict()).encode()
-        return HTTPStatus.OK, [("Content-Type", "application/json")], body
+        return Response(200, "OK", websockets.Headers({"Content-Type": "application/json"}), body)
 
     # Static files
     if path == "/":
         file_path = STATIC_DIR / "index.html"
     elif path.startswith("/static/"):
-        # Sanitize path to prevent directory traversal
         relative = path[len("/static/"):]
         if ".." in relative or relative.startswith("/"):
-            return HTTPStatus.FORBIDDEN, [], b"Forbidden"
+            return Response(403, "Forbidden", websockets.Headers(), b"Forbidden")
         file_path = STATIC_DIR / relative
     else:
-        return HTTPStatus.NOT_FOUND, [], b"Not Found"
+        return Response(404, "Not Found", websockets.Headers(), b"Not Found")
 
     if not file_path.is_file():
-        return HTTPStatus.NOT_FOUND, [], b"Not Found"
+        return Response(404, "Not Found", websockets.Headers(), b"Not Found")
 
     content_type = CONTENT_TYPES.get(file_path.suffix, "application/octet-stream")
     body = file_path.read_bytes()
-    return HTTPStatus.OK, [("Content-Type", content_type)], body
+    return Response(200, "OK", websockets.Headers({"Content-Type": content_type}), body)
 
 
 # ---------------------------------------------------------------------------

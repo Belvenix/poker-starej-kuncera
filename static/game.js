@@ -815,7 +815,7 @@
     $('#btn-create-room').addEventListener('click', function () {
         var name = $('#player-name').value.trim();
         if (!name) { showError('Wpisz swoje imie!'); return; }
-        fetch('/api/rooms', { method: 'POST' })
+        fetch('/api/rooms/new')
             .then(function (res) { return res.json(); })
             .then(function (data) {
                 if (data.code) {
