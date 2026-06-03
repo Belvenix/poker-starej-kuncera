@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Poker Starej Kuncery</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ========== LOBBY SCREEN ========== -->
+<div id="lobby-screen" class="screen active">
+    <div class="lobby-container">
+        <h1 class="game-title">Poker<br>Starej Kuncery</h1>
+
+        <!-- Join/Create forms -->
+        <div id="lobby-forms">
+            <div class="form-group">
+                <label for="player-name">Twoje imie</label>
+                <input type="text" id="player-name" placeholder="Wpisz imie..." maxlength="16" autocomplete="off">
+            </div>
+
+            <div class="lobby-actions">
+                <button id="btn-create-room" class="btn btn-primary btn-large">Stworz pokoj</button>
+                <div class="divider"><span>lub</span></div>
+                <div class="join-row">
+                    <input type="text" id="room-code-input" placeholder="Kod pokoju" maxlength="6" autocomplete="off" class="room-code-field">
+                    <button id="btn-join-room" class="btn btn-secondary">Dolacz</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Room waiting area (shown after joining/creating) -->
+        <div id="lobby-room" class="hidden">
+            <div class="room-code-display">
+                <span class="room-code-label">Kod pokoju:</span>
+                <span id="room-code-value" class="room-code-value">------</span>
+                <button id="btn-copy-code" class="btn btn-small" title="Kopiuj kod">Kopiuj</button>
+            </div>
+
+            <div class="player-list-section">
+                <h3>Gracze w pokoju</h3>
+                <ul id="lobby-player-list"></ul>
+            </div>
+
+            <button id="btn-start-game" class="btn btn-primary btn-large hidden">Zacznij!</button>
+            <p id="lobby-waiting" class="waiting-text">Czekanie na start...</p>
+        </div>
+
+        <div id="lobby-error" class="error-message hidden"></div>
+    </div>
+</div>
+
+<!-- ========== GAME SCREEN ========== -->
+<div id="game-screen" class="screen">
+    <div class="game-container">
+
+        <!-- Top bar: status info -->
+        <div class="game-topbar">
+            <div class="topbar-left">
+                <span id="round-info" class="round-info"></span>
+            </div>
+            <div class="topbar-right">
+                <button id="btn-history-toggle" class="btn btn-small btn-history">Historia</button>
+            </div>
+        </div>
+
+        <!-- Players strip -->
+        <div id="players-strip" class="players-strip"></div>
+
+        <!-- Current declaration -->
+        <div id="current-declaration" class="current-declaration">
+            <span class="declaration-label">Aktualna deklaracja:</span>
+            <span id="declaration-text" class="declaration-text">-</span>
+            <span id="declaration-by" class="declaration-by"></span>
+        </div>
+
+        <!-- Your hand -->
+        <div class="hand-section">
+            <h3 class="hand-label">Twoje karty</h3>
+            <div id="player-hand" class="player-hand"></div>
+        </div>
+
+        <!-- Action buttons -->
+        <div id="action-buttons" class="action-buttons">
+            <button id="btn-raise" class="btn btn-raise" disabled>Podbij</button>
+            <button id="btn-masq" class="btn btn-masq hidden" disabled>Maszkarada</button>
+            <button id="btn-check" class="btn btn-check" disabled>Sprawdz</button>
+            <button id="btn-mate" class="btn btn-mate" disabled>Mat</button>
+        </div>
+
+        <!-- Confirmation overlay -->
+        <div id="confirm-overlay" class="confirm-overlay hidden">
+            <div class="confirm-box">
+                <p id="confirm-text"></p>
+                <div class="confirm-actions">
+                    <button id="confirm-yes" class="btn btn-confirm-yes">Tak</button>
+                    <button id="confirm-no" class="btn btn-confirm-no">Nie</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Figure picker overlay -->
+        <div id="figure-picker" class="figure-picker hidden">
+            <div class="picker-backdrop"></div>
+            <div class="picker-panel">
+                <div class="picker-header">
+                    <h3>Wybierz figure</h3>
+                    <button id="picker-close" class="btn btn-small">Zamknij</button>
+                </div>
+                <div id="picker-content" class="picker-content"></div>
+            </div>
+        </div>
+
+        <!-- History panel -->
+        <div id="history-panel" class="history-panel hidden">
+            <div class="history-header">
+                <h3>Historia rundy</h3>
+                <button id="btn-history-close" class="btn btn-small">Zamknij</button>
+            </div>
+            <ul id="history-list" class="history-list"></ul>
+        </div>
+
+        <!-- Toast notification -->
+        <div id="toast" class="toast hidden"></div>
+
+        <!-- Round result overlay -->
+        <div id="round-result-overlay" class="round-result-overlay hidden">
+            <div class="round-result-box">
+                <h3 id="result-title" class="result-title"></h3>
+                <p id="result-description" class="result-description"></p>
+                <div id="result-cards" class="result-cards"></div>
+                <button id="result-dismiss" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+
+        <!-- Game over overlay -->
+        <div id="game-over-overlay" class="game-over-overlay hidden">
+            <div class="game-over-box">
+                <h2>Koniec gry!</h2>
+                <p id="game-over-text"></p>
+                <button id="btn-back-lobby" class="btn btn-primary btn-large">Wroc do lobby</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="/static/game.js"></script>
+</body>
+</html>
