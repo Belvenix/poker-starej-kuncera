@@ -3,7 +3,7 @@
 ## Phases
 
 ### Phase 1: POC (Playable on one machine / local network)
-- Python backend (FastAPI + WebSockets)
+- Python backend (websockets library + stdlib)
 - Minimal browser UI (HTML/CSS/JS, no framework)
 - Game logic fully server-side
 - Players connect via phone browsers on same WiFi
@@ -15,6 +15,7 @@
 - Incognito mode (screen privacy for peeking protection)
 - Game configuration UI (elimination limit, deck range, player count)
 - Reconnection handling
+- Disable impossible figures (e.g., 4 aces with only 3 cards in play)
 
 ### Phase 3: Distribution
 - Offline play (service worker / PWA)
@@ -28,8 +29,8 @@
 ```
 Browser (Phone)          Server (Python)
 +----------------+       +------------------+
-| HTML/CSS/JS    | <---> | FastAPI          |
-| WebSocket      |  WS   | WebSocket Hub    |
+| HTML/CSS/JS    | <---> | websockets lib   |
+| WebSocket      |  WS   | HTTP + WS server |
 | Card Display   |       | Game Engine      |
 | Action Buttons |       | Room Manager     |
 +----------------+       +------------------+
@@ -37,26 +38,31 @@ Browser (Phone)          Server (Python)
 
 ### Server Components
 
-#### `server.py` - Entry point
-- FastAPI app, serves static files, WebSocket endpoint
+#### `run.py` - Entry point
+- Starts the async server on configurable host/port
 
-#### `game/engine.py` - Core game logic
+#### `server/server.py` - Server
+- websockets library serves both HTTP and WebSocket on a single port
+- HTTP: static files + REST API (create/get rooms)
+- WebSocket: game actions (raise/check/mate/start)
+
+#### `server/game/engine.py` - Core game logic
 - Deck management (shuffle, deal, return cards)
 - Figure validation (check if a declared figure exists in all dealt cards)
 - Figure comparison (ordering, raise validation)
 - Round state machine (declare -> raise/check/mate -> resolve -> new round)
 
-#### `game/models.py` - Data models
+#### `server/game/models.py` - Data models
 - Card, Deck, Player, Figure, GameState, Room
 - All game configuration (elimination limit, deck range, etc.)
 
-#### `game/figures.py` - Figure detection & comparison
+#### `server/game/figures.py` - Figure detection & comparison
 - Enumerate all figure types
 - Detect if a figure exists in a set of cards
 - Compare two figures (for raise validation)
 - Determine highest possible figure (for mate validation)
 
-#### `game/room.py` - Room/session management
+#### `server/game/room.py` - Room/session management
 - Create/join rooms with codes
 - Player connection tracking
 - Game lifecycle (lobby -> playing -> finished)
@@ -68,43 +74,52 @@ Browser (Phone)          Server (Python)
 - Game screen (hand, actions, history)
 
 #### `static/game.js` - Game client
-- WebSocket connection
+- WebSocket connection with auto-reconnect
 - Render game state
-- Send player actions
+- Figure picker (type -> rank/suit selectors)
+- Masquerade button for full house swap
+- Confirmation dialogs for check/mate
 - Toggle history panel
 
 #### `static/style.css` - Styling
-- Mobile-first responsive design
-- Card visuals (CSS-only for POC)
-- Action buttons designed for easy thumb tapping
+- Mobile-first responsive design (scales to laptop)
+- Card visuals with suit symbols (CSS-only)
+- Casino-green theme, gold accents
+- Action buttons: raise (blue), check (orange), mate (red), masquerade (purple)
 
 ### WebSocket Protocol
 
 ```json
 // Server -> Client
-{"type": "state", "hand": [...], "current_player": "...", "last_figure": {...}, "players": [...]}
-{"type": "round_result", "action": "check|mate", "winner": "...", "loser": "...", "cards_revealed": [...]}
-{"type": "game_over", "winner": "..."}
+{"type": "state", "phase": "DECLARING", "players": [...], "round": {...}, "config": {...}}
+{"type": "round_result", "event": "check|mate|raise", ...}
+{"type": "game_over", "winner": "player_id"}
+{"type": "player_joined", "name": "...", "players": [...]}
+{"type": "player_left", "name": "...", "players": [...]}
+{"type": "error", "message": "..."}
 
 // Client -> Server
-{"type": "raise", "figure": {"type": "pair", "rank": "K"}}
+{"type": "raise", "figure": {"type": "pair", "params": [13]}}
+{"type": "raise", "figure": {"type": "full_house", "params": [14, 9], "masquerade": true}}
 {"type": "check"}
 {"type": "mate"}
+{"type": "start"}
 ```
 
 ## Security Considerations (POC)
 
 - Game state is SERVER-SIDE only; clients only see their own cards
 - No card data sent to other players until check/mate reveals
-- Room codes should be non-guessable (6 char alphanumeric)
+- Room codes are non-guessable (6 char alphanumeric)
 - Input validation on all client messages
+- Path traversal protection on static file serving
 - NOTE: POC on local network assumes trusted environment; no auth
 
 ## Security Considerations (Release)
 
 - Rate limiting per IP and per room
-- Max rooms per server with auto-cleanup of idle rooms
-- Max message size on WebSocket
+- Max rooms per server with auto-cleanup of idle rooms (30 min timeout)
+- Max message size on WebSocket (4KB)
 - Server crash > unexpected bill (fail-closed)
 - No persistent storage of game data (in-memory only)
 - Optional: simple room passwords
@@ -114,10 +129,10 @@ Browser (Phone)          Server (Python)
 
 ### POC
 - **WiFi requirement**: All players must be on same network; phone hotspot works
-- **Phone sleep**: WebSocket disconnects when screen locks; need reconnect logic early
-- **Fat fingers**: Action buttons must be large and spaced; accidental clicks are frustrating
-- **Figure selection UX**: Declaring "full house, kings over tens" requires multiple taps; needs smart UI (type -> rank selectors, contextual)
-- **Straights config**: Number of possible straights depends on deck range; must be dynamic
+- **Phone sleep**: WebSocket disconnects when screen locks; auto-reconnect on visibility change implemented
+- **Fat fingers**: Confirmation dialogs on check/mate prevent accidents
+- **Figure selection UX**: Two-step picker (type -> rank/suit) with only valid options shown
+- **Straights config**: Number of possible straights depends on deck range; dynamically computed
 
 ### Release
 - **Offline + multiplayer conflict**: True offline requires all players in same physical network; PWA helps with "no internet" but still needs local connectivity
@@ -126,11 +141,10 @@ Browser (Phone)          Server (Python)
 - **Cheating**: In P2P mode, a modified client could peek at state; server-authoritative mode is more secure
 - **Physical cards feel**: Tangible cards are satisfying; compensate with good animations, card flip sounds, vibration on deal/check/mate
 
-## Dependencies (POC, minimal)
+## Dependencies
 
 - Python 3.11+
-- FastAPI (web framework + WebSocket support)
-- uvicorn (ASGI server)
+- `websockets` (pure Python, no C extensions)
 - No database (in-memory state)
 - No JS framework (vanilla JS)
 - No build tools
@@ -144,7 +158,7 @@ poker-starej-kuncera-poc/
     ARCHITECTURE.md
   server/
     __init__.py
-    server.py          # FastAPI app, entry point
+    server.py          # HTTP + WebSocket server
     game/
       __init__.py
       models.py        # Data models
@@ -155,6 +169,6 @@ poker-starej-kuncera-poc/
     index.html
     game.js
     style.css
-  requirements.txt
+  run.py               # Entry point
   README.md
 ```

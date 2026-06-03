@@ -5,14 +5,37 @@ Blefowa gra karciana / Bluffing card game for friends.
 ## Quick Start
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/uvicorn server.server:app --host 0.0.0.0 --port 8000
+pip install websockets
+python3 run.py
 ```
 
 Open `http://<your-ip>:8000` on your phone.
 
 One person creates a room, others join with the room code.
+
+### Termux (Android)
+
+```bash
+pkg install python
+pip install websockets
+python3 run.py 0.0.0.0 8000
+```
+
+To find your phone's local IP (for others to connect):
+
+```bash
+python3 -c "import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.connect(('8.8.8.8',80)); print(s.getsockname()[0]); s.close()"
+```
+
+### macOS / Linux
+
+```bash
+# macOS
+ipconfig getifaddr en0
+
+# Linux
+hostname -I | awk '{print $1}'
+```
 
 ## How to Play
 
@@ -31,7 +54,8 @@ See [docs/GAME_RULES.md](docs/GAME_RULES.md) for full rules in Polish and Englis
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for technical details.
 
-- Python (FastAPI + WebSockets)
+- Python + websockets (single pure-Python dependency)
 - Vanilla HTML/CSS/JS frontend
-- No database, no build tools
+- No database, no build tools, no C extensions
 - Mobile-first UI
+- Runs on any device with Python 3.11+
