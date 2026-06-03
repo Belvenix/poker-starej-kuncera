@@ -63,6 +63,71 @@
         playTone(600, 0.08, 'sine', 0.1);
     }
 
+    function sfxMasquerade() {
+        // Explosion: noise burst + deep boom + rising whistle
+        try {
+            var ctx = getAudio();
+            var now = ctx.currentTime;
+
+            // White noise burst (explosion crack)
+            var bufSize = ctx.sampleRate * 0.3;
+            var buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+            var data = buf.getChannelData(0);
+            for (var i = 0; i < bufSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 3);
+            }
+            var noise = ctx.createBufferSource();
+            noise.buffer = buf;
+            var noiseGain = ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.25, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            noise.connect(noiseGain);
+            noiseGain.connect(ctx.destination);
+            noise.start(now);
+
+            // Deep boom
+            var boom = ctx.createOscillator();
+            boom.type = 'sine';
+            boom.frequency.setValueAtTime(150, now);
+            boom.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+            var boomGain = ctx.createGain();
+            boomGain.gain.setValueAtTime(0.3, now);
+            boomGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            boom.connect(boomGain);
+            boomGain.connect(ctx.destination);
+            boom.start(now);
+            boom.stop(now + 0.5);
+
+            // Rising whistle after the boom
+            var whistle = ctx.createOscillator();
+            whistle.type = 'sine';
+            whistle.frequency.setValueAtTime(400, now + 0.15);
+            whistle.frequency.exponentialRampToValueAtTime(1600, now + 0.6);
+            var whistleGain = ctx.createGain();
+            whistleGain.gain.setValueAtTime(0.001, now);
+            whistleGain.gain.linearRampToValueAtTime(0.12, now + 0.25);
+            whistleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+            whistle.connect(whistleGain);
+            whistleGain.connect(ctx.destination);
+            whistle.start(now + 0.15);
+            whistle.stop(now + 0.7);
+
+            // Sparkle hits
+            [0.2, 0.3, 0.4, 0.5].forEach(function (t) {
+                var s = ctx.createOscillator();
+                s.type = 'sine';
+                s.frequency.value = 1000 + Math.random() * 2000;
+                var g = ctx.createGain();
+                g.gain.setValueAtTime(0.08, now + t);
+                g.gain.exponentialRampToValueAtTime(0.001, now + t + 0.1);
+                s.connect(g);
+                g.connect(ctx.destination);
+                s.start(now + t);
+                s.stop(now + t + 0.1);
+            });
+        } catch (e) {}
+    }
+
     function sfxDeal() {
         playTone(1200, 0.04, 'triangle', 0.08);
     }
@@ -306,7 +371,12 @@
                     vibrate([100, 50, 100]);
                     showRoundResult(msg);
                 } else if (msg.event === 'raise') {
-                    sfxRaise();
+                    if (msg.figure && msg.figure.indexOf('maszkarada') !== -1) {
+                        sfxMasquerade();
+                        vibrate([50, 30, 50, 30, 200]);
+                    } else {
+                        sfxRaise();
+                    }
                 }
                 break;
 
